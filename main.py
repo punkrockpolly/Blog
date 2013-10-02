@@ -14,10 +14,6 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), 
                                 autoescape = True)
 
-#JINJA_ENVIRONMENT = jinja2.Environment(
-#    loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
-#    extensions=['jinja2.ext.autoescape'])
-
 
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -30,34 +26,58 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
-class Art(db.Model):
-	title = db.StringProperty(required = True)
-	art = db.TextProperty(required = True)
+class Blog(db.Model):
+	subject = db.StringProperty(required = True)
+	content = db.TextProperty(required = True)
+    #post_id = db.key().id()
 	created = db.DateTimeProperty(auto_now_add = True)
 
 class MainPage(Handler):
-    def render_front(self, title="", art="", error=""):
-    	arts = db.GqlQuery("SELECT * FROM Art "
+    def render_front(self, subject="", content="", error=""):
+    	entries = db.GqlQuery("SELECT * FROM Blog "
                             "ORDER BY created DESC ")
-        self.render("front.html", title=title, art=art, error=error, arts=arts)
+        self.render("front.html", subject=subject, content=content, error=error, entries=entries)
     
     def get(self):
         self.render_front()
-    
-    def post(self):
-        title = self.request.get("title")
-        art = self.request.get("art")
 
-        if title and art:
-        	a = Art(title = title, art = art)
-        	a.put()
-        	self.redirect("/")
+    def post(self):
+        subject = self.request.get("subject")
+        content = self.request.get("content")
+
+        if subject and content:
+            new_post = Blog(subject = subject, content = content)
+            new_post.put()
+            new_post_id = new_post.key().id()
+            self.redirect('/blog/%s' % new_post_id)
 
         else:
-            error = "we need both a title and some artwork!"
-            self.render_front(title, art, error)
+            error = "We need both a subject and some content!"
+            self.render_front(subject, content, error)
+    
+    
+class NewPost(Handler):
+    def render_front(self, subject="", content="", error=""):
+        self.render("front.html", subject=subject, content=content, error=error)
+    
+    def get(self):
+        self.render_front()
 
+    def post(self):
+        subject = self.request.get("subject")
+        content = self.request.get("content")
 
-app = webapp2.WSGIApplication([('/', MainPage)], debug=True)
+        if subject and content:
+            new_post = Blog(subject = subject, content = content)
+            new_post.put()
+            new_post_id = new_post.key().id()
+            self.redirect('/blog/%s' % new_post_id)
+
+        else:
+            error = "We need both a subject and some content!"
+            self.render_front(subject, content, error)
+    
+    
+app = webapp2.WSGIApplication([('/blog', MainPage), ('/blog/newpost', NewPost)], debug=True)
 
 
