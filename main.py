@@ -27,38 +27,24 @@ class Handler(webapp2.RequestHandler):
         self.write(self.render_str(template, **kw))
 
 class Blog(db.Model):
-	subject = db.StringProperty(required = True)
-	content = db.TextProperty(required = True)
-    #post_id = db.key().id()
-	created = db.DateTimeProperty(auto_now_add = True)
+    subject = db.StringProperty(required = True)
+    content = db.TextProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
 
 class MainPage(Handler):
-    def render_front(self, subject="", content="", error=""):
-    	entries = db.GqlQuery("SELECT * FROM Blog "
-                            "ORDER BY created DESC ")
-        self.render("front.html", subject=subject, content=content, error=error, entries=entries)
+    def render_front(self):
+    	entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC ")
+        self.render("front.html", entries=entries)
     
     def get(self):
         self.render_front()
 
-    def post(self):
-        subject = self.request.get("subject")
-        content = self.request.get("content")
-
-        if subject and content:
-            new_post = Blog(subject = subject, content = content)
-            new_post.put()
-            new_post_id = new_post.key().id()
-            self.redirect('/blog/%s' % new_post_id)
-
-        else:
-            error = "We need both a subject and some content!"
-            self.render_front(subject, content, error)
+    #def post(self):
     
     
 class NewPost(Handler):
     def render_front(self, subject="", content="", error=""):
-        self.render("front.html", subject=subject, content=content, error=error)
+        self.render("newpost.html", subject=subject, content=content, error=error)
     
     def get(self):
         self.render_front()
@@ -76,8 +62,17 @@ class NewPost(Handler):
         else:
             error = "We need both a subject and some content!"
             self.render_front(subject, content, error)
+
+class PostPage(Handler):
+    def render_front(self, post_id=""):
+        post_id = int(post_id)
+        display_post = Blog.get_by_id(post_id)
+        self.render("postpage.html", display_post=display_post)
+
+    def get(self, post_id=""):
+        self.render_front(post_id)
     
     
-app = webapp2.WSGIApplication([('/blog', MainPage), ('/blog/newpost', NewPost)], debug=True)
+app = webapp2.WSGIApplication([('/blog', MainPage), ('/blog/newpost', NewPost), ('/blog/(\d+)', PostPage)], debug=True)
 
 
