@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{ block content %}
+{% block content %}
 		{% for entry in entries %}
 		    {{ entry.render() | safe }}
 		    <br><br>
