@@ -46,8 +46,15 @@
 		<hr>
 
 		<div class="entry">
-			<div class="entry-subject">{{display_post.subject}}</div>
-			<pre class="entry-content">{{display_post.content}}</pre>
+			<div class="entry-subject">
+				{{display_post.subject}}
+			</div>
+			<div class="post-date">
+				{{display_post.created.strftime("%b, %d, %Y")}}
+			</div>
+			<pre class="entry-content">
+				{{display_post.content}}
+			</pre>
 		</div>
 
     </body>
