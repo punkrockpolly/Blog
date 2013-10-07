@@ -26,6 +26,12 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
+
+def render_post(response, post):
+    response.out.write('<b>' + post.subject + '</b><br>')
+    response.out.write(post.content)
+
+
 class Blog(db.Model):
     subject = db.StringProperty(required = True)
     content = db.TextProperty(required = True)
@@ -34,26 +40,17 @@ class Blog(db.Model):
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
-        return render_str("newpost.html", p = self)
+        return render_str("post.html", new_post = self)
 
 class MainPage(Handler):
-    def render_front(self):
+    def get(self):
     	entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC LIMIT 10")
         self.render("front.html", entries=entries)
-        print entries
-    
-    def get(self):
-        self.render_front()
-
-    #def post(self):
     
     
 class NewPost(Handler):
-    def render_front(self, subject="", content="", error=""):
-        self.render("newpost.html", subject=subject, content=content, error=error)
-    
     def get(self):
-        self.render_front()
+        self.render("newpost.html")
 
     def post(self):
         subject = self.request.get("subject")
@@ -70,18 +67,15 @@ class NewPost(Handler):
             self.render_front(subject, content, error)
 
 class PostPage(Handler):
-    def render_front(self, post_id=""):
+    def get(self, post_id=""):
         post_id = int(post_id)
         display_post = Blog.get_by_id(post_id)
         
-        if not post:
+        if not display_post:
             self.error(404)
             return
 
         self.render("postpage.html", display_post=display_post)
-
-    def get(self, post_id=""):
-        self.render_front(post_id)
     
     
 app = webapp2.WSGIApplication([('/blog', MainPage), 
