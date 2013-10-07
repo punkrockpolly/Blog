@@ -40,6 +40,7 @@ class MainPage(Handler):
     def render_front(self):
     	entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC LIMIT 10")
         self.render("front.html", entries=entries)
+        print entries
     
     def get(self):
         self.render_front()
