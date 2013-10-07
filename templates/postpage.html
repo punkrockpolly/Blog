@@ -11,14 +11,14 @@
 
 		<hr>
 
-		<div class="entry">
-			<div class="entry-subject">
+		<div class="post">
+			<div class="post-subject">
 				{{display_post.subject}}
 			</div>
 			<div class="post-date">
 				{{display_post.created.strftime("%b, %d, %Y")}}
 			</div>
-			<div class="entry-content">
+			<div class="post-content">
 				{{display_post._render_text | safe}}
 			</div>
 		</div>

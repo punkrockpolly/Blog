@@ -13,15 +13,16 @@ import jinja2
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), 
                                 autoescape = True)
-
+def render_str(template, **params):
+    t = jinja_env.get_template(template)
+    return t.render(params)
 
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
     
     def render_str(self, template, **params):
-        t = jinja_env.get_template(template)
-        return t.render(params)
+        return render_str(template, **params)
     
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
@@ -30,6 +31,10 @@ class Handler(webapp2.RequestHandler):
 def render_post(response, post):
     response.out.write('<b>' + post.subject + '</b><br>')
     response.out.write(post.content)
+
+class WelcomePage(Handler):
+  def get(self):
+      self.write('Hello!')
 
 
 class Blog(db.Model):
@@ -78,7 +83,8 @@ class PostPage(Handler):
         self.render("postpage.html", display_post=display_post)
     
     
-app = webapp2.WSGIApplication([('/blog', MainPage), 
+app = webapp2.WSGIApplication([('/', WelcomePage), 
+                               ('/blog', MainPage), 
                                ('/blog/newpost', NewPost), 
                                ('/blog/(\d+)', PostPage),
                                ], 
