@@ -52,9 +52,9 @@
 			<div class="post-date">
 				{{display_post.created.strftime("%b, %d, %Y")}}
 			</div>
-			<pre class="entry-content">
-				{{display_post.content}}
-			</pre>
+			<div class="entry-content">
+				{{display_post._render_text | safe}}
+			</div>
 		</div>
 
     </body>
