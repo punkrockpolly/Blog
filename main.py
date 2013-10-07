@@ -33,7 +33,7 @@ class Blog(db.Model):
     last_modified = db.DateTimeProperty(auto_now_add = True)
 
     def render(self):
-        self._render_text() = self.content.replace('\n', <br>)
+        self._render_text() = self.content.replace('\n', '<br>')
         return render_str("newpost.html", p = self)
 
 class MainPage(Handler):
