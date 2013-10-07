@@ -36,12 +36,9 @@ class Blog(db.Model):
         self._render_text() = self.content.replace('\n', <br>)
         return render_str("newpost.html", p = self)
 
-class blog_key(name = 'default'):
-    return db.Key.from_path('blogs', name)
-
 class MainPage(Handler):
     def render_front(self):
-    	entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC ")
+    	entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC LIMIT 10")
         self.render("front.html", entries=entries)
     
     def get(self):
@@ -75,12 +72,21 @@ class PostPage(Handler):
     def render_front(self, post_id=""):
         post_id = int(post_id)
         display_post = Blog.get_by_id(post_id)
+        
+        if not post:
+            self.error(404)
+            return
+
         self.render("postpage.html", display_post=display_post)
 
     def get(self, post_id=""):
         self.render_front(post_id)
     
     
-app = webapp2.WSGIApplication([('/blog', MainPage), ('/blog/newpost', NewPost), ('/blog/(\d+)', PostPage)], debug=True)
+app = webapp2.WSGIApplication([('/blog', MainPage), 
+                               ('/blog/newpost', NewPost), 
+                               ('/blog/(\d+)', PostPage),
+                               ], 
+                               debug=True)
 
 
