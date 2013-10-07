@@ -30,6 +30,14 @@ class Blog(db.Model):
     subject = db.StringProperty(required = True)
     content = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
+    last_modified = db.DateTimeProperty(auto_now_add = True)
+
+    def render(self):
+        self._render_text() = self.content.replace('\n', <br>)
+        return render_str("newpost.html", p = self)
+
+class blog_key(name = 'default'):
+    return db.Key.from_path('blogs', name)
 
 class MainPage(Handler):
     def render_front(self):
