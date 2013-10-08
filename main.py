@@ -27,7 +27,6 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
-
 def render_post(response, post):
     response.out.write('<b>' + post.subject + '</b><br>')
     response.out.write(post.content)
@@ -52,7 +51,6 @@ class MainPage(Handler):
     	entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC LIMIT 10")
         self.render("front.html", entries=entries)
     
-    
 class NewPost(Handler):
     def get(self):
         self.render("newpost.html")
@@ -69,7 +67,7 @@ class NewPost(Handler):
 
         else:
             error = "We need both a subject and some content!"
-            self.render_front(subject, content, error)
+            self.render("newpost.html", subject=subject, content=content, error=error)
 
 class PostPage(Handler):
     def get(self, post_id=""):
