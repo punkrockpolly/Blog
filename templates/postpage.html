@@ -10,19 +10,20 @@
 
         <h1>Punkrockpolly's Blog</h1>
 
-		<hr>
-
 		<div class="post">
-			<div class="post-subject">
-				{{display_post.subject}}
-			</div>
-			<div class="post-date">
-				{{display_post.created.strftime("%b, %d, %Y")}}
-			</div>
-			<div class="post-content">
-				{{display_post._render_text | safe}}
-			</div>
-		</div>
+ 		<div class="post-heading">
+    		<div class="post-title">
+      			{{display_post.subject}}
+    		</div>
 
+    		<div class="post-date">
+      			{{display_post.created.strftime("%b %d, %Y")}}
+    		</div>
+  		</div>
+
+  		<div class="post-content">
+    		{{display_post.content | safe}}
+    	</div>
+    </div>
     </body>
 </html>
