@@ -1,10 +1,10 @@
 
 import os
-
 from google.appengine.ext import db
-
 import webapp2
 import jinja2
+import cgi
+import re
 
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -33,7 +33,7 @@ def render_post(response, post):
     response.out.write(post.content)
 
 
-class WelcomePage(Handler):
+class Index(Handler):
     def get(self):
         self.write('Hello!')
 
@@ -55,7 +55,7 @@ class Art(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
 
 
-class MainPage(Handler):
+class BlogPage(Handler):
     def get(self):
         entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC LIMIT 10")
         self.render("front.html", entries=entries)
@@ -114,9 +114,75 @@ class AsciiPage(Handler):
             self.render_front(title, art, error)
 
 
-app = webapp2.WSGIApplication([('/', WelcomePage),
-                               ('/blog', MainPage),
+def escape_html(s):
+    return cgi.escape(s, quote=True)
+
+USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+PASS_RE = re.compile(r"^.{3,20}$")
+EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
+
+
+def valid_username(username):
+    return USER_RE.match(username)
+
+
+def valid_password(password):
+    return PASS_RE.match(password)
+
+
+def valid_email(email):
+    return EMAIL_RE.match(email)
+
+
+class SignupPage(Handler):
+    def get(self):
+        self.render("signup-form.html")
+
+    def post(self):
+        user_username = self.request.get('username')
+        user_password = self.request.get('password')
+        user_verify = self.request.get('verify')
+        user_email = self.request.get('email')
+        params = dict(username=user_username,
+                      email=user_email)
+        have_error = False
+
+        if not (user_password == user_verify):
+            params['user_verror'] = "Your passwords didn't match."
+            have_error = True
+
+        if not (valid_password(user_password)):
+            params['user_perror'] = "That wasn't a valid password."
+            have_error = True
+
+        if not (valid_username(user_username)):
+            params['user_uerror'] = "That's not a valid username."
+            have_error = True
+
+        if not (user_email == "" or valid_email(user_email)):
+            params['user_eerror'] = "That's not a valid email."
+            have_error = True
+
+        if have_error:
+            self.render('signup-form.html', **params)
+        else:
+            self.redirect('/welcome')
+
+
+class WelcomePage(Handler):
+    def get(self):
+        username = self.request.get('username')
+        if valid_username(username):
+            self.render('welcome.html', username=username)
+        else:
+            self.redirect('/signup')
+
+
+app = webapp2.WSGIApplication([('/', Index),
+                               ('/welcome', WelcomePage),
+                               ('/blog', BlogPage),
                                ('/blog/newpost', NewPost),
                                ('/blog/(\d+)', PostPage),
                                ('/ascii', AsciiPage),
+                               ('/signup', SignupPage),
                                ], debug=True)
