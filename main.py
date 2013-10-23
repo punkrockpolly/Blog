@@ -5,6 +5,9 @@ import webapp2
 import jinja2
 import cgi
 import re
+import random
+import string
+import hashlib
 
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -61,6 +64,12 @@ class BlogPage(Handler):
         self.render("front.html", entries=entries)
 
 
+class UserDB(db.Model):
+    username = db.StringProperty(required=True)
+    hash_pw = db.StringProperty(required=True)
+    join_date = db.DateTimeProperty(auto_now_add=True)
+
+
 class NewPost(Handler):
     def get(self):
         self.render("newpost.html")
@@ -114,6 +123,25 @@ class AsciiPage(Handler):
             self.render_front(title, art, error)
 
 
+def make_salt():
+    return ''.join(random.choice(string.letters) for x in xrange(5))
+
+
+def make_pw_hash(name, pw, salt=""):
+    if salt == "":
+        salt = make_salt()
+    h = hashlib.sha256(name + pw + salt).hexdigest()
+    return '%s,%s' % (h, salt)
+
+
+def valid_pw(name, pw, h):
+    salt = h.split(',')[1]
+    if make_pw_hash(name, pw, salt) == h:
+        return True
+    else:
+        return False
+
+
 def escape_html(s):
     return cgi.escape(s, quote=True)
 
@@ -136,7 +164,7 @@ def valid_email(email):
 
 class SignupPage(Handler):
     def get(self):
-        self.render("signup-form.html")
+        self.render('signup-form.html')
 
     def post(self):
         user_username = self.request.get('username')
@@ -166,12 +194,56 @@ class SignupPage(Handler):
         if have_error:
             self.render('signup-form.html', **params)
         else:
+            h = make_pw_hash(user_username, user_password)
+            new_user = UserDB(username=user_username, hash_pw=h)
+            new_user.put()
+            cookie_value = str(user_username)
+            self.response.headers.add_header('Set-Cookie', 'user=' + cookie_value + '; Path=/')
+            self.redirect('/welcome')
+
+
+class LoginPage(Handler):
+    def get(self):
+        self.render('login-form.html')
+
+    def post(self):
+        user_username = self.request.get('username')
+        user_password = self.request.get('password')
+
+        params = dict(username=user_username)
+        have_error = False
+
+        if not (valid_password(user_password)):
+            params['user_perror'] = "Invalid login"
+            have_error = True
+
+        if not (valid_username(user_username)):
+            params['user_uerror'] = "Invalid login"
+            have_error = True
+
+        userdata = db.GqlQuery("SELECT * FROM UserDB WHERE username=:1 limit 1", user_username)
+        userdata = userdata.get()
+        if not userdata:
+            params['user_uerror'] = "Invalid login"
+            have_error = True
+
+        hash_pw = userdata.get_by_id.hash_pw
+        if not valid_pw(user_username, user_password, hash_pw):
+            params['user_perror'] = "Invalid login"
+            have_error = True
+
+        if have_error:
+            self.render('login-form.html', **params)
+        else:
+            cookie_value = str(user_username)
+
+            self.response.headers.add_header('Set-Cookie', 'user=' + cookie_value + '; Path=/')
             self.redirect('/welcome')
 
 
 class WelcomePage(Handler):
     def get(self):
-        username = self.request.get('username')
+        username = self.request.cookies.get('user')
         if valid_username(username):
             self.render('welcome.html', username=username)
         else:
@@ -185,4 +257,5 @@ app = webapp2.WSGIApplication([('/', Index),
                                ('/blog/(\d+)', PostPage),
                                ('/ascii', AsciiPage),
                                ('/signup', SignupPage),
+                               ('/login', LoginPage),
                                ], debug=True)
