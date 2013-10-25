@@ -10,8 +10,9 @@ import string
 import hashlib
 
 
+## setup template path using jinja
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir), 
+jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
                                autoescape=True)
 
 
@@ -20,6 +21,12 @@ def render_str(template, **params):
     return t.render(params)
 
 
+def render_post(response, post):
+    response.out.write('<b>' + post.subject + '</b><br>')
+    response.out.write(post.content)
+
+
+## Handler class with helper methods for rendering pages
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
@@ -31,16 +38,12 @@ class Handler(webapp2.RequestHandler):
         self.write(self.render_str(template, **kw))
 
 
-def render_post(response, post):
-    response.out.write('<b>' + post.subject + '</b><br>')
-    response.out.write(post.content)
-
-
 class Index(Handler):
     def get(self):
-        self.write('Hello!')
+        self.write('Hello! Nothing to see here')
 
 
+## model for blog entries
 class Blog(db.Model):
     subject = db.StringProperty(required=True)
     content = db.TextProperty(required=True)
@@ -52,22 +55,24 @@ class Blog(db.Model):
         return render_str("post.html", new_post=self)
 
 
+## model for blog ascii art
 class Art(db.Model):
     title = db.StringProperty(required=True)
     art = db.TextProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
 
 
-class BlogPage(Handler):
-    def get(self):
-        entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC LIMIT 10")
-        self.render("front.html", entries=entries)
-
-
+## model for users
 class UserDB(db.Model):
     username = db.StringProperty(required=True)
     hash_pw = db.StringProperty(required=True)
     join_date = db.DateTimeProperty(auto_now_add=True)
+
+
+class BlogPage(Handler):
+    def get(self):
+        entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC LIMIT 10")
+        self.render("front.html", entries=entries)
 
 
 class NewPost(Handler):
