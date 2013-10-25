@@ -139,7 +139,8 @@ def make_pw_hash(name, pw, salt=""):
     return '%s,%s' % (h, salt)
 
 
-def valid_pw(name, pw, h):
+## determines if pw and hash match
+def is_valid_pw(name, pw, h):
     salt = h.split(',')[1]
     if make_pw_hash(name, pw, salt) == h:
         return True
@@ -150,20 +151,21 @@ def valid_pw(name, pw, h):
 def escape_html(s):
     return cgi.escape(s, quote=True)
 
-USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
-PASS_RE = re.compile(r"^.{3,20}$")
-EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
 
+## functions to validate input fields
 
 def valid_username(username):
+    USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
     return USER_RE.match(username)
 
 
 def valid_password(password):
+    PASS_RE = re.compile(r"^.{3,20}$")
     return PASS_RE.match(password)
 
 
 def valid_email(email):
+    EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
     return EMAIL_RE.match(email)
 
 
@@ -233,7 +235,7 @@ class LoginPage(Handler):
             have_error = True
 
         hash_pw = userdata.get_by_id.hash_pw
-        if not valid_pw(user_username, user_password, hash_pw):
+        if not is_valid_pw(user_username, user_password, hash_pw):
             params['user_perror'] = "Invalid login"
             have_error = True
 
