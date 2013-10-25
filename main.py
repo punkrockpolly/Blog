@@ -226,19 +226,21 @@ class LoginPage(Handler):
             have_error = True
 
         if not (valid_username(user_username)):
-            params['user_uerror'] = "Invalid login"
-            have_error = True
-
-        userdata = db.GqlQuery("SELECT * FROM UserDB WHERE username=:1 limit 1", user_username)
-        userdata = userdata.get()
-        if not userdata:
-            params['user_uerror'] = "Invalid login"
-            have_error = True
-
-        hash_pw = userdata.hash_pw
-        if not is_valid_pw(user_username, user_password, hash_pw):
             params['user_perror'] = "Invalid login"
             have_error = True
+
+        if not have_error:
+            userdata = db.GqlQuery("SELECT * FROM UserDB WHERE username=:1 limit 1", user_username)
+            userdata = userdata.get()
+            hash_pw = userdata.hash_pw
+
+            if not userdata:
+                params['user_perror'] = "Invalid login"
+                have_error = True
+
+            if not is_valid_pw(user_username, user_password, hash_pw):
+                params['user_perror'] = "Invalid login"
+                have_error = True
 
         if have_error:
             self.render('login-form.html', **params)
@@ -247,6 +249,13 @@ class LoginPage(Handler):
 
             self.response.headers.add_header('Set-Cookie', 'user=' + cookie_value + '; Path=/')
             self.redirect('/welcome')
+
+
+class LogoutPage(Handler):
+    def get(self):
+        cookie_value = ''
+        self.response.headers.add_header('Set-Cookie', 'user=' + cookie_value + '; Path=/')
+        self.redirect('/signup')
 
 
 class WelcomePage(Handler):
@@ -266,4 +275,5 @@ app = webapp2.WSGIApplication([('/', Index),
                                ('/ascii', AsciiPage),
                                ('/signup', SignupPage),
                                ('/login', LoginPage),
+                               ('/logout', LogoutPage),
                                ], debug=True)
