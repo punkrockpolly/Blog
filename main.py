@@ -11,6 +11,7 @@ import hashlib
 
 
 ## setup template path using jinja
+
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
                                autoescape=True)
@@ -234,7 +235,7 @@ class LoginPage(Handler):
             params['user_uerror'] = "Invalid login"
             have_error = True
 
-        hash_pw = userdata.get_by_id.hash_pw
+        hash_pw = userdata.hash_pw
         if not is_valid_pw(user_username, user_password, hash_pw):
             params['user_perror'] = "Invalid login"
             have_error = True
