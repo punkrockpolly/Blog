@@ -133,17 +133,17 @@ def make_salt():
     return ''.join(random.choice(string.letters) for x in xrange(5))
 
 
-def make_pw_hash(name, pw, salt=""):
+def make_hash(name, hash_val, salt=''):
     if salt == "":
         salt = make_salt()
-    h = hashlib.sha256(name + pw + salt).hexdigest()
+    h = hashlib.sha256(name + hash_val + salt).hexdigest()
     return '%s,%s' % (h, salt)
 
 
-## determines if pw and hash match
-def is_valid_pw(name, pw, h):
-    salt = h.split(',')[1]
-    if make_pw_hash(name, pw, salt) == h:
+## determines if check_input and hash_val match
+def is_valid_hash_input(name, check_input, hash_val):
+    salt = hash_val.split(',')[1]
+    if make_hash(name, check_input, salt) == hash_val:
         return True
     else:
         return False
@@ -202,11 +202,16 @@ class SignupPage(Handler):
         if have_error:
             self.render('signup-form.html', **params)
         else:
-            h = make_pw_hash(user_username, user_password)
+            h = make_hash(user_username, user_password)
             new_user = UserDB(username=user_username, hash_pw=h)
             new_user.put()
-            cookie_value = str(user_username)
-            self.response.headers.add_header('Set-Cookie', 'user=' + cookie_value + '; Path=/')
+            hash_userid = make_hash(user_username, str(new_user.key().id()))
+
+            cookie_username = str(user_username)
+            cookie_userid = str(hash_userid)
+
+            self.response.headers.add_header('Set-Cookie', 'user=' + cookie_username + '; Path=/')
+            self.response.headers.add_header('Set-Cookie', 'userid=' + cookie_userid + '; Path=/')
             self.redirect('/welcome')
 
 
@@ -230,24 +235,25 @@ class LoginPage(Handler):
             have_error = True
 
         if not have_error:
-            userdata = db.GqlQuery("SELECT * FROM UserDB WHERE username=:1 limit 1", user_username)
-            userdata = userdata.get()
+            userdata = db.GqlQuery("SELECT * FROM UserDB WHERE username=:1 limit 1", user_username).get()
             hash_pw = userdata.hash_pw
+            hash_userid = make_hash(user_username, str(userdata.key().id()))
 
             if not userdata:
                 params['user_perror'] = "Invalid login"
                 have_error = True
 
-            if not is_valid_pw(user_username, user_password, hash_pw):
+            if not is_valid_hash_input(user_username, user_password, hash_pw):
                 params['user_perror'] = "Invalid login"
                 have_error = True
 
         if have_error:
             self.render('login-form.html', **params)
         else:
-            cookie_value = str(user_username)
-
-            self.response.headers.add_header('Set-Cookie', 'user=' + cookie_value + '; Path=/')
+            cookie_username = str(user_username)
+            cookie_userid = str(hash_userid)
+            self.response.headers.add_header('Set-Cookie', 'user=' + cookie_username + '; Path=/')
+            self.response.headers.add_header('Set-Cookie', 'userid=' + cookie_userid + '; Path=/')
             self.redirect('/welcome')
 
 
@@ -255,13 +261,19 @@ class LogoutPage(Handler):
     def get(self):
         cookie_value = ''
         self.response.headers.add_header('Set-Cookie', 'user=' + cookie_value + '; Path=/')
+        self.response.headers.add_header('Set-Cookie', 'userid=' + cookie_value + '; Path=/')
         self.redirect('/signup')
 
 
 class WelcomePage(Handler):
     def get(self):
         username = self.request.cookies.get('user')
-        if valid_username(username):
+        userdata = db.GqlQuery("SELECT * FROM UserDB WHERE username=:1 limit 1", username).get()
+        hash_userid = self.request.cookies.get('userid')
+        hash_val = userdata.hash_userid
+
+
+        if (valid_username(username) and is_valid_hash_input(username, hash_userid, hash_val)):
             self.render('welcome.html', username=username)
         else:
             self.redirect('/signup')
