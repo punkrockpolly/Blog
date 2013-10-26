@@ -206,7 +206,7 @@ class SignupPage(Handler):
             new_user = UserDB(username=user_username, hash_pw=h)
             new_user.put()
             hash_userid = make_hash(user_username, str(new_user.key().id()))
-
+            
             cookie_username = str(user_username)
             cookie_userid = str(hash_userid)
 
