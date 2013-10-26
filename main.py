@@ -152,14 +152,8 @@ def pull_userdata_from_db(username):
 
 ## determines if check_input and hash_val match
 def is_valid_hash_input(name, check_input, hash_val):
-    print name
-    print check_input
-    print hash_val
     salt = hash_val.split(',')[1]
-    print salt
-    print make_hash(name, check_input, salt)
     if make_hash(name, check_input, salt) == hash_val:
-        print("that shit actually matched!!!\n")
         return True
     else:
         return False
@@ -173,17 +167,17 @@ def escape_html(s):
 
 def valid_username(username):
     USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
-    return USER_RE.match(username)
+    return username and USER_RE.match(username)
 
 
 def valid_password(password):
     PASS_RE = re.compile(r"^.{3,20}$")
-    return PASS_RE.match(password)
+    return password and PASS_RE.match(password)
 
 
 def valid_email(email):
     EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
-    return EMAIL_RE.match(email)
+    return not email or EMAIL_RE.match(email)
 
 
 class SignupPage(Handler):
@@ -266,6 +260,10 @@ class LoginPage(Handler):
         if have_error:
             self.render('login-form.html', **params)
         else:
+            # update login session hash on cookie & db
+            hash_session = make_hash(user_username, str(userdata.key().id()))
+            userdata.hash_session = hash_session
+            userdata.put()
             self.set_cookie(str(user_username), str(hash_session))
             self.redirect('/welcome')
 
@@ -280,16 +278,17 @@ class LogoutPage(Handler):
 class WelcomePage(Handler):
     def get(self):
         username_cookie = self.request.cookies.get('user')
-        hash_userid_cookie = self.request.cookies.get('userid')
+        session_cookie = self.request.cookies.get('session')
 
         userdata = pull_userdata_from_db(username_cookie)
         userid = str(userdata.key().id())
+        hash_session = userdata.hash_session
 
-        print("\n\n hash_userid_cookie %s" % hash_userid_cookie)
+        print("\n\n session_cookie %s" % session_cookie)
         print("\n\n userid %s" % userid)
-        print userdata
+        print ("\n\n hash_session %s" % hash_session)
 
-        if (valid_username(username_cookie) and is_valid_hash_input(username_cookie, userid, hash_userid_cookie)):
+        if (valid_username(username_cookie) and is_valid_hash_input(username_cookie, userid, hash_session)):
             self.render('welcome.html', username=username_cookie)
         else:
             self.redirect('/signup')
