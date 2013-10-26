@@ -288,11 +288,12 @@ class WelcomePage(Handler):
         session_cookie = self.request.cookies.get('session')
 
         userdata = pull_userdata_from_db(username_cookie)
-        hash_session = userdata.hash_session.split(',')[0]
+        hash_session = session_cookie  # userdata.hash_session.split(',')[0]
 
-        print("\nhash_session: %s session_cookie: %s" % (hash_session, session_cookie))
+        print("\nhash_session: %s \nsession_cookie: %s\n" % (hash_session, session_cookie))
+        print("hash_session: %s\n" % (userdata.hash_session))
 
-        if valid_username(username_cookie) and userdata.hash_session == session_cookie:
+        if valid_username(username_cookie) and (hash_session == session_cookie):
             self.render('welcome.html', username=username_cookie)
         else:
             self.redirect('/signup')
