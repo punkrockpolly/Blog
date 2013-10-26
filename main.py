@@ -75,6 +75,7 @@ class UserDB(db.Model):
     join_date = db.DateTimeProperty(auto_now_add=True)
 
 
+## renders newest 10 blog posts
 class BlogPage(Handler):
     def get(self):
         entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC LIMIT 10")
@@ -180,6 +181,14 @@ def valid_email(email):
     return not email or EMAIL_RE.match(email)
 
 
+def username_available(user_username):
+    userdata = pull_userdata_from_db(user_username)
+    if not userdata:
+        return True
+    else:
+        return False
+
+
 class SignupPage(Handler):
     def get(self):
         self.render('signup-form.html')
@@ -209,11 +218,15 @@ class SignupPage(Handler):
             params['user_eerror'] = "That's not a valid email."
             have_error = True
 
+        if not username_available(user_username):
+            params['user_uerror'] = "That username is not available"
+            have_error = True
+
         if have_error:
             self.render('signup-form.html', **params)
         else:
-            h = make_hash(user_username, user_password)
-            new_user = UserDB(username=user_username, hash_pw=h)
+            hash_pw = make_hash(user_username, user_password)
+            new_user = UserDB(username=user_username, hash_pw=hash_pw)
             new_user.put()
             hash_session = make_hash(user_username, str(new_user.key().id()))
             new_user.hash_session = hash_session
@@ -244,35 +257,29 @@ class LoginPage(Handler):
 
         if not have_error:
             userdata = pull_userdata_from_db(user_username)
-            hash_pw = userdata.hash_pw
-            hash_session = userdata.hash_session
-
-            print("\n\n\n LOGIN hash_session %s \n\n" % hash_session)
 
             if not userdata:
                 params['user_perror'] = "Invalid login"
                 have_error = True
 
-            if not is_valid_hash_input(user_username, user_password, hash_pw):
-                params['user_perror'] = "Invalid login"
-                have_error = True
+            else:
+                hash_pw = userdata.hash_pw
+                hash_session = userdata.hash_session
+
+                if not is_valid_hash_input(user_username, user_password, hash_pw):
+                    params['user_perror'] = "Invalid login"
+                    have_error = True
 
         if have_error:
             self.render('login-form.html', **params)
         else:
-            # update login session hash on cookie & db
+            # update session value hash in cookie & db
             hash_session = make_hash(user_username, str(userdata.key().id()))
             userdata.hash_session = hash_session
             userdata.put()
+
             self.set_cookie(str(user_username), str(hash_session))
             self.redirect('/welcome')
-
-
-class LogoutPage(Handler):
-    def get(self):
-        # clear cookie values
-        self.set_cookie('', '')
-        self.redirect('/signup')
 
 
 class WelcomePage(Handler):
@@ -281,17 +288,21 @@ class WelcomePage(Handler):
         session_cookie = self.request.cookies.get('session')
 
         userdata = pull_userdata_from_db(username_cookie)
-        userid = str(userdata.key().id())
-        hash_session = userdata.hash_session
+        hash_session = userdata.hash_session.split(',')[0]
 
-        print("\n\n session_cookie %s" % session_cookie)
-        print("\n\n userid %s" % userid)
-        print ("\n\n hash_session %s" % hash_session)
+        print("\nhash_session: %s session_cookie: %s" % (hash_session, session_cookie))
 
-        if (valid_username(username_cookie) and is_valid_hash_input(username_cookie, userid, hash_session)):
+        if valid_username(username_cookie) and userdata.hash_session == session_cookie:
             self.render('welcome.html', username=username_cookie)
         else:
             self.redirect('/signup')
+
+
+class LogoutPage(Handler):
+    def get(self):
+        # clear cookie values
+        self.set_cookie('', '')
+        self.redirect('/signup')
 
 
 app = webapp2.WSGIApplication([('/', Index),
