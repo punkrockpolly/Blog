@@ -38,9 +38,10 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
-    def set_cookie(self, cookie_username, cookie_session):
+    def set_cookie(self, cookie_username, cookie_user_id, cookie_hash_id):
         self.response.headers.add_header('Set-Cookie', 'user=' + cookie_username + '; Path=/')
-        self.response.headers.add_header('Set-Cookie', 'session=' + cookie_session + '; Path=/')
+        self.response.headers.add_header('Set-Cookie', 'userid=' + cookie_user_id + '; Path=/')
+        self.response.headers.add_header('Set-Cookie', 'hash=' + cookie_hash_id + '; Path=/')
 
 
 class Index(Handler):
@@ -71,7 +72,6 @@ class Art(db.Model):
 class UserDB(db.Model):
     username = db.StringProperty(required=True)
     hash_pw = db.StringProperty(required=True)
-    hash_session = db.StringProperty()
     join_date = db.DateTimeProperty(auto_now_add=True)
 
 
@@ -143,7 +143,7 @@ def make_hash(name, hash_val, salt=''):
     if salt == "":
         salt = make_salt()
     h = hashlib.sha256(name + hash_val + salt).hexdigest()
-    return '%s,%s' % (h, salt)
+    return '%s|%s' % (h, salt)
 
 
 def pull_userdata_from_db(username):
@@ -153,7 +153,7 @@ def pull_userdata_from_db(username):
 
 ## determines if check_input and hash_val match
 def is_valid_hash_input(name, check_input, hash_val):
-    salt = hash_val.split(',')[1]
+    salt = hash_val.split('|')[1]
     if make_hash(name, check_input, salt) == hash_val:
         return True
     else:
@@ -181,8 +181,8 @@ def valid_email(email):
     return not email or EMAIL_RE.match(email)
 
 
-def username_available(user_username):
-    userdata = pull_userdata_from_db(user_username)
+def username_available(username):
+    userdata = pull_userdata_from_db(username)
     if not userdata:
         return True
     else:
@@ -228,11 +228,12 @@ class SignupPage(Handler):
             hash_pw = make_hash(user_username, user_password)
             new_user = UserDB(username=user_username, hash_pw=hash_pw)
             new_user.put()
-            hash_session = make_hash(user_username, str(new_user.key().id()))
-            new_user.hash_session = hash_session
-            new_user.put()
+            user_id = str(new_user.key().id())
+            hash_id = make_hash(user_username, user_id)
 
-            self.set_cookie(str(user_username), str(hash_session))
+            print("\n%s hash_id added\n" % hash_id)
+
+            self.set_cookie(str(user_username), str(user_id), str(hash_id))
             self.redirect('/welcome')
 
 
@@ -264,8 +265,6 @@ class LoginPage(Handler):
 
             else:
                 hash_pw = userdata.hash_pw
-                hash_session = userdata.hash_session
-
                 if not is_valid_hash_input(user_username, user_password, hash_pw):
                     params['user_perror'] = "Invalid login"
                     have_error = True
@@ -274,27 +273,24 @@ class LoginPage(Handler):
             self.render('login-form.html', **params)
         else:
             # update session value hash in cookie & db
-            hash_session = make_hash(user_username, str(userdata.key().id()))
-            userdata.hash_session = hash_session
-            userdata.put()
+            user_id = str(userdata.key().id())
+            hash_id = make_hash(user_username, user_id)
+            print("\n%s hash_id\n" % hash_id)
 
-            self.set_cookie(str(user_username), str(hash_session))
+            self.set_cookie(str(user_username), str(user_id), str(hash_id))
             self.redirect('/welcome')
 
 
 class WelcomePage(Handler):
     def get(self):
-        username_cookie = self.request.cookies.get('user')
-        session_cookie = self.request.cookies.get('session')
+        username = self.request.cookies.get('user')
+        userid = self.request.cookies.get('userid')
+        hash_val = self.request.cookies.get('hash')
 
-        userdata = pull_userdata_from_db(username_cookie)
-        hash_session = session_cookie  # userdata.hash_session.split(',')[0]
+        print("\userid: %s \nhash_val: %s\n" % (userid, hash_val))
 
-        print("\nhash_session: %s \nsession_cookie: %s\n" % (hash_session, session_cookie))
-        print("hash_session: %s\n" % (userdata.hash_session))
-
-        if valid_username(username_cookie) and (hash_session == session_cookie):
-            self.render('welcome.html', username=username_cookie)
+        if valid_username(username) and is_valid_hash_input(username, userid, hash_val):
+            self.render('welcome.html', username=username)
         else:
             self.redirect('/signup')
 
@@ -302,7 +298,7 @@ class WelcomePage(Handler):
 class LogoutPage(Handler):
     def get(self):
         # clear cookie values
-        self.set_cookie('', '')
+        self.set_cookie('', '', '')
         self.redirect('/signup')
 
 
