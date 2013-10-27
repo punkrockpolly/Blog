@@ -230,9 +230,6 @@ class SignupPage(Handler):
             new_user.put()
             user_id = str(new_user.key().id())
             hash_id = make_hash(user_username, user_id)
-
-            print("\n%s hash_id added\n" % hash_id)
-
             self.set_cookie(str(user_username), str(user_id), str(hash_id))
             self.redirect('/welcome')
 
@@ -275,8 +272,6 @@ class LoginPage(Handler):
             # update session value hash in cookie & db
             user_id = str(userdata.key().id())
             hash_id = make_hash(user_username, user_id)
-            print("\n%s hash_id\n" % hash_id)
-
             self.set_cookie(str(user_username), str(user_id), str(hash_id))
             self.redirect('/welcome')
 
@@ -286,8 +281,6 @@ class WelcomePage(Handler):
         username = self.request.cookies.get('user')
         userid = self.request.cookies.get('userid')
         hash_val = self.request.cookies.get('hash')
-
-        print("\userid: %s \nhash_val: %s\n" % (userid, hash_val))
 
         if valid_username(username) and is_valid_hash_input(username, userid, hash_val):
             self.render('welcome.html', username=username)
