@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>URL Shortner</title>
+    <style type="text/css">
+      .label {text-align: right}
+      .error {color: red}
+    </style>
+
+  </head>
+
+  <body>
+    <h2>URL Shortner</h2>
+    <form method="post">
+    What URL would you like to shorten?
+    <br><br>
+    <label>
+        Input URL:
+        <input type="text" name="url_in" value="{{url_in}}">
+    </label>
+
+    <div class="error">{{error}}</div>
+    <br>
+    <input type="submit">
+    <br>
+    <br>
+    <br>
+    <div class="output">Short URL: <a href="{{url_out}}">{{url_out}}</a></div>
+    </label>
+  </form>
+  </body>
+
+</html>
