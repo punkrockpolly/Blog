@@ -39,9 +39,15 @@ class Handler(webapp2.RequestHandler):
         self.write(self.render_str(template, **kw))
 
     def set_cookie(self, cookie_username, cookie_user_id, cookie_hash_id):
-        self.response.headers.add_header('Set-Cookie', 'user=' + cookie_username + '; Path=/')
-        self.response.headers.add_header('Set-Cookie', 'userid=' + cookie_user_id + '; Path=/')
-        self.response.headers.add_header('Set-Cookie', 'hash=' + cookie_hash_id + '; Path=/')
+        self.response.headers.add_header('Set-Cookie',
+                                         'user=' + cookie_username +
+                                         '; Path=/')
+        self.response.headers.add_header('Set-Cookie',
+                                         'userid=' + cookie_user_id +
+                                         '; Path=/')
+        self.response.headers.add_header('Set-Cookie',
+                                         'hash=' + cookie_hash_id +
+                                         '; Path=/')
 
 
 class Index(Handler):
@@ -98,7 +104,10 @@ class NewPost(Handler):
 
         else:
             error = "We need both a subject and some content!"
-            self.render("newpost.html", subject=subject, content=content, error=error)
+            self.render("newpost.html",
+                        subject=subject,
+                        content=content,
+                        error=error)
 
 
 class PostPage(Handler):
@@ -116,7 +125,11 @@ class PostPage(Handler):
 class AsciiPage(Handler):
     def render_front(self, title="", art="", error=""):
         arts = db.GqlQuery("SELECT * FROM Art ORDER BY created DESC")
-        self.render("ascii_front.html", title=title, art=art, error=error, arts=arts)
+        self.render("ascii_front.html",
+                    title=title,
+                    art=art,
+                    error=error,
+                    arts=arts)
 
     def get(self):
         self.render_front()
@@ -262,7 +275,9 @@ class LoginPage(Handler):
 
             else:
                 hash_pw = userdata.hash_pw
-                if not is_valid_hash_input(user_username, user_password, hash_pw):
+                if not is_valid_hash_input(user_username,
+                                           user_password,
+                                           hash_pw):
                     params['user_perror'] = "Invalid login"
                     have_error = True
 
@@ -282,7 +297,9 @@ class WelcomePage(Handler):
         userid = self.request.cookies.get('userid')
         hash_val = self.request.cookies.get('hash')
 
-        if valid_username(username) and is_valid_hash_input(username, userid, hash_val):
+        if valid_username(username) and is_valid_hash_input(username,
+                                                            userid,
+                                                            hash_val):
             self.render('welcome.html', username=username)
         else:
             self.redirect('/signup')
