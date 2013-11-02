@@ -64,7 +64,7 @@ class Blog(db.Model):
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
-        return render_str("post.html", new_post=self)
+        return render_str('post.html', new_post=self)
 
 
 ## model for blog ascii art
@@ -81,20 +81,28 @@ class UserDB(db.Model):
     join_date = db.DateTimeProperty(auto_now_add=True)
 
 
+## model for url db
+class Url(db.Model):
+    url_long = db.StringProperty(required=True)
+    url_short = db.StringProperty(required=True)
+    use_count = db.IntegerProperty(required=True)
+    created = db.DateTimeProperty(auto_now_add=True)
+
+
 ## renders newest 10 blog posts
 class BlogPage(Handler):
     def get(self):
-        entries = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC LIMIT 10")
-        self.render("front.html", entries=entries)
+        entries = db.GqlQuery('SELECT * FROM Blog ORDER BY created DESC LIMIT 10')
+        self.render('front.html', entries=entries)
 
 
 class NewPost(Handler):
     def get(self):
-        self.render("newpost.html")
+        self.render('newpost.html')
 
     def post(self):
-        subject = self.request.get("subject")
-        content = self.request.get("content")
+        subject = self.request.get('subject')
+        content = self.request.get('content')
 
         if subject and content:
             new_post = Blog(subject=subject, content=content)
@@ -103,15 +111,15 @@ class NewPost(Handler):
             self.redirect('/blog/%s' % new_post_id)
 
         else:
-            error = "We need both a subject and some content!"
-            self.render("newpost.html",
+            error = 'We need both a subject and some content!'
+            self.render('newpost.html',
                         subject=subject,
                         content=content,
                         error=error)
 
 
 class PostPage(Handler):
-    def get(self, post_id=""):
+    def get(self, post_id=''):
         post_id = int(post_id)
         display_post = Blog.get_by_id(post_id)
 
@@ -119,13 +127,13 @@ class PostPage(Handler):
             self.error(404)
             return
 
-        self.render("postpage.html", display_post=display_post)
+        self.render('postpage.html', display_post=display_post)
 
 
 class AsciiPage(Handler):
-    def render_front(self, title="", art="", error=""):
-        arts = db.GqlQuery("SELECT * FROM Art ORDER BY created DESC")
-        self.render("ascii_front.html",
+    def render_front(self, title='', art='', error=''):
+        arts = db.GqlQuery('SELECT * FROM Art ORDER BY created DESC')
+        self.render('ascii_front.html',
                     title=title,
                     art=art,
                     error=error,
@@ -135,16 +143,16 @@ class AsciiPage(Handler):
         self.render_front()
 
     def post(self):
-        title = self.request.get("title")
-        art = self.request.get("art")
+        title = self.request.get('title')
+        art = self.request.get('art')
 
         if title and art:
             a = Art(title=title, art=art)
             a.put()
-            self.redirect("/ascii")
+            self.redirect('/ascii')
 
         else:
-            error = "we need both a title and some artwork!"
+            error = 'we need both a title and some artwork!'
             self.render_front(title, art, error)
 
 
@@ -153,14 +161,14 @@ def make_salt():
 
 
 def make_hash(name, hash_val, salt=''):
-    if salt == "":
+    if salt == '':
         salt = make_salt()
     h = hashlib.sha256(name + hash_val + salt).hexdigest()
     return '%s|%s' % (h, salt)
 
 
 def pull_userdata_from_db(username):
-    userdata = db.GqlQuery("SELECT * FROM UserDB WHERE username=:1 limit 1", username).get()
+    userdata = db.GqlQuery('SELECT * FROM UserDB WHERE username=:1 limit 1', username).get()
     return userdata
 
 
@@ -180,17 +188,17 @@ def escape_html(s):
 ## functions to validate input fields
 
 def valid_username(username):
-    USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+    USER_RE = re.compile(r'^[a-zA-Z0-9_-]{3,20}$')
     return username and USER_RE.match(username)
 
 
 def valid_password(password):
-    PASS_RE = re.compile(r"^.{3,20}$")
+    PASS_RE = re.compile(r'^.{3,20}$')
     return password and PASS_RE.match(password)
 
 
 def valid_email(email):
-    EMAIL_RE = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
+    EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
     return not email or EMAIL_RE.match(email)
 
 
@@ -200,6 +208,67 @@ def username_available(username):
         return True
     else:
         return False
+
+
+## functions to shorten URLs
+
+def add_http(url_long):
+    if not (url_long.startswith('http://')):
+        url_long = 'http://' + url_long
+    return url_long
+
+
+def return_short_url(url_long):
+    url_long = add_http(url_long)
+    urldata = check_for_url_long(url_long)
+    if not urldata:
+        return make_url_short(url_long)
+    else:
+        return urldata
+
+
+def pull_urldata_from_db(url_long='', url_short=''):
+    if url_long:
+        urldata = db.GqlQuery('SELECT * FROM Url WHERE url_long=:1 limit 1',
+                              url_long).get()
+        return urldata
+    elif url_short:
+        urldata = db.GqlQuery('SELECT * FROM Url WHERE url_short=:1 limit 1',
+                              url_short).get()
+        return urldata
+    else:
+        return
+
+
+def add_url_to_db(url_long, url_short):
+    Url(url_long=url_long, url_short=url_short, use_count=1).put()
+
+
+def check_for_url_long(url_long):
+    urldata = pull_urldata_from_db(url_long)
+    if urldata:
+        urldata.use_count = urldata.use_count + 1
+        urldata.put()
+        return urldata.url_short
+    else:
+        return
+
+
+def check_for_url_short(url_short):
+    urldata = pull_urldata_from_db(url_short)
+    if not urldata:
+        return True
+    else:
+        return False
+
+
+def make_url_short(url_long):
+    url_short = ''.join(random.choice(string.letters) for x in xrange(6))
+    if check_for_url_short(url_short):
+        add_url_to_db(url_long, url_short)
+        return url_short
+    else:
+        make_url_short(url_long)
 
 
 class SignupPage(Handler):
@@ -227,12 +296,12 @@ class SignupPage(Handler):
             params['user_uerror'] = "That's not a valid username."
             have_error = True
 
-        if not (user_email == "" or valid_email(user_email)):
+        if not (user_email == '' or valid_email(user_email)):
             params['user_eerror'] = "That's not a valid email."
             have_error = True
 
         if not username_available(user_username):
-            params['user_uerror'] = "That username is not available"
+            params['user_uerror'] = "That username isn't available"
             have_error = True
 
         if have_error:
@@ -259,18 +328,18 @@ class LoginPage(Handler):
         have_error = False
 
         if not (valid_password(user_password)):
-            params['user_perror'] = "Invalid login"
+            params['user_perror'] = 'Invalid login'
             have_error = True
 
         if not (valid_username(user_username)):
-            params['user_perror'] = "Invalid login"
+            params['user_perror'] = 'Invalid login'
             have_error = True
 
         if not have_error:
             userdata = pull_userdata_from_db(user_username)
 
             if not userdata:
-                params['user_perror'] = "Invalid login"
+                params['user_perror'] = 'Invalid login'
                 have_error = True
 
             else:
@@ -278,7 +347,7 @@ class LoginPage(Handler):
                 if not is_valid_hash_input(user_username,
                                            user_password,
                                            hash_pw):
-                    params['user_perror'] = "Invalid login"
+                    params['user_perror'] = 'Invalid login'
                     have_error = True
 
         if have_error:
@@ -312,6 +381,42 @@ class LogoutPage(Handler):
         self.redirect('/signup')
 
 
+class URLPage(Handler):
+    def write_form(self, error='', url_in='', url_out=''):
+        self.render('short-url.html',
+                    error=error,
+                    url_in=escape_html(url_in),
+                    url_out='')
+
+    def get(self):
+        self.write_form()
+
+    def post(self, error='', url_in=''):
+        user_url_in = self.request.get('url_in')
+
+        if user_url_in == '':
+            self.write_form('Please enter a valid URL into the input box',
+                            user_url_in)
+        else:
+            url_short = return_short_url(user_url_in)
+            url_out = 'http://pogiralt.appspot.com/' + url_short
+            self.render('short-url.html',
+                        error='',
+                        url_in=user_url_in,
+                        url_out=url_out)
+
+
+class Redirector(Handler):
+    def get(self, url_in=''):
+        urldata = pull_urldata_from_db(url_short=url_in)
+        display_url = urldata.url_long
+
+        if not display_url:
+            self.error(404)
+            return
+        self.redirect(str(display_url))
+
+
 app = webapp2.WSGIApplication([('/', Index),
                                ('/welcome', WelcomePage),
                                ('/blog', BlogPage),
@@ -321,4 +426,6 @@ app = webapp2.WSGIApplication([('/', Index),
                                ('/signup', SignupPage),
                                ('/login', LoginPage),
                                ('/logout', LogoutPage),
+                               ('/shorten', URLPage),
+                               ('/(\w+)', Redirector)
                                ], debug=True)
