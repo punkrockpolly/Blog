@@ -14,7 +14,7 @@ import user_module
 import blog_module
 
 
-## setup template path using jinja
+# setup template path using jinja
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
@@ -42,7 +42,7 @@ def pull_userdata_from_db(username):
     return userdata
 
 
-## determines if check_input and hash_val match
+# determines if check_input and hash_val match
 def is_valid_hash_input(name, check_input, hash_val):
     salt = hash_val.split('|')[1]
     if make_hash(name, check_input, salt) == hash_val:
@@ -55,7 +55,7 @@ def escape_html(s):
     return cgi.escape(s, quote=True)
 
 
-## functions to validate input fields
+# functions to validate input fields
 
 def valid_username(username):
     USER_RE = re.compile(r'^[a-zA-Z0-9_-]{3,20}$')
@@ -80,7 +80,7 @@ def username_available(username):
         return False
 
 
-## functions to shorten URLs
+# functions to shorten URLs
 
 def add_http(url_long):
     if not (url_long.startswith('http://')):
@@ -141,7 +141,7 @@ def make_url_short(url_long):
         make_url_short(url_long)
 
 
-## Handler class with helper methods for rendering pages & managing cookies
+# Handler class with helper methods for rendering pages & managing cookies
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
