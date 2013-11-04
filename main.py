@@ -8,6 +8,10 @@ import re
 import random
 import string
 import hashlib
+import art_module
+import url_module
+import user_module
+import blog_module
 
 
 ## setup template path using jinja
@@ -20,11 +24,6 @@ jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
 def render_str(template, **params):
     t = jinja_env.get_template(template)
     return t.render(params)
-
-
-def render_post(response, post):
-    response.out.write('<b>' + post.subject + '</b><br>')
-    response.out.write(post.content)
 
 
 ## Handler class with helper methods for rendering pages & managing cookies
@@ -55,40 +54,6 @@ class Index(Handler):
         self.write('Hello! Nothing to see here')
 
 
-## model for blog entries
-class Blog(db.Model):
-    subject = db.StringProperty(required=True)
-    content = db.TextProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
-    last_modified = db.DateTimeProperty(auto_now_add=True)
-
-    def render(self):
-        self._render_text = self.content.replace('\n', '<br>')
-        return render_str('post.html', new_post=self)
-
-
-## model for blog ascii art
-class Art(db.Model):
-    title = db.StringProperty(required=True)
-    art = db.TextProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
-
-
-## model for users
-class UserDB(db.Model):
-    username = db.StringProperty(required=True)
-    hash_pw = db.StringProperty(required=True)
-    join_date = db.DateTimeProperty(auto_now_add=True)
-
-
-## model for url db
-class Url(db.Model):
-    url_long = db.StringProperty(required=True)
-    url_short = db.StringProperty(required=True)
-    use_count = db.IntegerProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
-
-
 ## renders newest 10 blog posts
 class BlogPage(Handler):
     def get(self):
@@ -105,7 +70,7 @@ class NewPost(Handler):
         content = self.request.get('content')
 
         if subject and content:
-            new_post = Blog(subject=subject, content=content)
+            new_post = blog_module.Blog(subject=subject, content=content)
             new_post.put()
             new_post_id = new_post.key().id()
             self.redirect('/blog/%s' % new_post_id)
@@ -121,7 +86,7 @@ class NewPost(Handler):
 class PostPage(Handler):
     def get(self, post_id=''):
         post_id = int(post_id)
-        display_post = Blog.get_by_id(post_id)
+        display_post = blog_module.Blog.get_by_id(post_id)
 
         if not display_post:
             self.error(404)
@@ -147,7 +112,7 @@ class AsciiPage(Handler):
         art = self.request.get('art')
 
         if title and art:
-            a = Art(title=title, art=art)
+            a = art_module.Art(title=title, art=art)
             a.put()
             self.redirect('/ascii')
 
@@ -241,7 +206,7 @@ def pull_urldata_from_db(url_long='', url_short=''):
 
 
 def add_url_to_db(url_long, url_short):
-    Url(url_long=url_long, url_short=url_short, use_count=1).put()
+    url_module.Url(url_long=url_long, url_short=url_short, use_count=1).put()
 
 
 def check_for_url_long(url_long):
@@ -308,7 +273,8 @@ class SignupPage(Handler):
             self.render('signup-form.html', **params)
         else:
             hash_pw = make_hash(user_username, user_password)
-            new_user = UserDB(username=user_username, hash_pw=hash_pw)
+            new_user = user_module.UserDB(username=user_username,
+                                          hash_pw=hash_pw)
             new_user.put()
             user_id = str(new_user.key().id())
             hash_id = make_hash(user_username, user_id)
