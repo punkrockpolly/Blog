@@ -1,8 +1,9 @@
 from google.appengine.ext import db
 
 
-## model for users
-class UserDB(db.Model):
-    username = db.StringProperty(required=True)
-    hash_pw = db.StringProperty(required=True)
-    join_date = db.DateTimeProperty(auto_now_add=True)
+## model for blog entries
+class Blog(db.Model):
+    subject = db.StringProperty(required=True)
+    content = db.TextProperty(required=True)
+    created = db.DateTimeProperty(auto_now_add=True)
+    last_modified = db.DateTimeProperty(auto_now_add=True)

@@ -26,101 +26,6 @@ def render_str(template, **params):
     return t.render(params)
 
 
-## Handler class with helper methods for rendering pages & managing cookies
-class Handler(webapp2.RequestHandler):
-    def write(self, *a, **kw):
-        self.response.out.write(*a, **kw)
-
-    def render_str(self, template, **params):
-        return render_str(template, **params)
-
-    def render(self, template, **kw):
-        self.write(self.render_str(template, **kw))
-
-    def set_cookie(self, cookie_username, cookie_user_id, cookie_hash_id):
-        self.response.headers.add_header('Set-Cookie',
-                                         'user=' + cookie_username +
-                                         '; Path=/')
-        self.response.headers.add_header('Set-Cookie',
-                                         'userid=' + cookie_user_id +
-                                         '; Path=/')
-        self.response.headers.add_header('Set-Cookie',
-                                         'hash=' + cookie_hash_id +
-                                         '; Path=/')
-
-
-class Index(Handler):
-    def get(self):
-        self.write('Hello! Nothing to see here')
-
-
-## renders newest 10 blog posts
-class BlogPage(Handler):
-    def get(self):
-        entries = db.GqlQuery('SELECT * FROM Blog ORDER BY created DESC LIMIT 10')
-        self.render('front.html', entries=entries)
-
-
-class NewPost(Handler):
-    def get(self):
-        self.render('newpost.html')
-
-    def post(self):
-        subject = self.request.get('subject')
-        content = self.request.get('content')
-
-        if subject and content:
-            new_post = blog_module.Blog(subject=subject, content=content)
-            new_post.put()
-            new_post_id = new_post.key().id()
-            self.redirect('/blog/%s' % new_post_id)
-
-        else:
-            error = 'We need both a subject and some content!'
-            self.render('newpost.html',
-                        subject=subject,
-                        content=content,
-                        error=error)
-
-
-class PostPage(Handler):
-    def get(self, post_id=''):
-        post_id = int(post_id)
-        display_post = blog_module.Blog.get_by_id(post_id)
-
-        if not display_post:
-            self.error(404)
-            return
-
-        self.render('postpage.html', display_post=display_post)
-
-
-class AsciiPage(Handler):
-    def render_front(self, title='', art='', error=''):
-        arts = db.GqlQuery('SELECT * FROM Art ORDER BY created DESC')
-        self.render('ascii_front.html',
-                    title=title,
-                    art=art,
-                    error=error,
-                    arts=arts)
-
-    def get(self):
-        self.render_front()
-
-    def post(self):
-        title = self.request.get('title')
-        art = self.request.get('art')
-
-        if title and art:
-            a = art_module.Art(title=title, art=art)
-            a.put()
-            self.redirect('/ascii')
-
-        else:
-            error = 'we need both a title and some artwork!'
-            self.render_front(title, art, error)
-
-
 def make_salt():
     return ''.join(random.choice(string.letters) for x in xrange(5))
 
@@ -236,6 +141,106 @@ def make_url_short(url_long):
         make_url_short(url_long)
 
 
+## Handler class with helper methods for rendering pages & managing cookies
+class Handler(webapp2.RequestHandler):
+    def write(self, *a, **kw):
+        self.response.out.write(*a, **kw)
+
+    def render_str(self, template, **params):
+        return render_str(template, **params)
+
+    def render(self, template, **kw):
+        self.write(self.render_str(template, **kw))
+
+    def set_cookie(self, cookie_username, cookie_user_id, cookie_hash_id):
+        self.response.headers.add_header('Set-Cookie',
+                                         'user=' + cookie_username +
+                                         '; Path=/')
+        self.response.headers.add_header('Set-Cookie',
+                                         'userid=' + cookie_user_id +
+                                         '; Path=/')
+        self.response.headers.add_header('Set-Cookie',
+                                         'hash=' + cookie_hash_id +
+                                         '; Path=/')
+
+
+# render index page
+class Index(Handler):
+    def get(self):
+        self.write('Hello! Nothing to see here')
+
+
+# render newest 10 blog posts
+class BlogPage(Handler):
+    def get(self):
+        entries = db.GqlQuery('SELECT * FROM Blog ORDER BY created DESC LIMIT 10')
+        self.render('front.html', entries=entries)
+
+
+# page to post new blog entries
+class NewPost(Handler):
+    def get(self):
+        self.render('newpost.html')
+
+    def post(self):
+        subject = self.request.get('subject')
+        content = self.request.get('content')
+
+        if subject and content:
+            new_post = blog_module.Blog(subject=subject, content=content)
+            new_post.put()
+            new_post_id = new_post.key().id()
+            self.redirect('/blog/%s' % new_post_id)
+
+        else:
+            error = 'We need both a subject and some content!'
+            self.render('newpost.html',
+                        subject=subject,
+                        content=content,
+                        error=error)
+
+
+# permalink for blog entries
+class PostPage(Handler):
+    def get(self, post_id=''):
+        post_id = int(post_id)
+        display_post = blog_module.Blog.get_by_id(post_id)
+
+        if not display_post:
+            self.error(404)
+            return
+
+        self.render('postpage.html', display_post=display_post)
+
+
+# ASCII art page
+class AsciiPage(Handler):
+    def render_front(self, title='', art='', error=''):
+        arts = db.GqlQuery('SELECT * FROM Art ORDER BY created DESC')
+        self.render('ascii_front.html',
+                    title=title,
+                    art=art,
+                    error=error,
+                    arts=arts)
+
+    def get(self):
+        self.render_front()
+
+    def post(self):
+        title = self.request.get('title')
+        art = self.request.get('art')
+
+        if title and art:
+            a = art_module.Art(title=title, art=art)
+            a.put()
+            self.redirect('/ascii')
+
+        else:
+            error = 'we need both a title and some artwork!'
+            self.render_front(title, art, error)
+
+
+# site signup page
 class SignupPage(Handler):
     def get(self):
         self.render('signup-form.html')
@@ -282,6 +287,7 @@ class SignupPage(Handler):
             self.redirect('/welcome')
 
 
+# site login page
 class LoginPage(Handler):
     def get(self):
         self.render('login-form.html')
@@ -326,6 +332,7 @@ class LoginPage(Handler):
             self.redirect('/welcome')
 
 
+# welcome after logging in
 class WelcomePage(Handler):
     def get(self):
         username = self.request.cookies.get('user')
@@ -340,6 +347,7 @@ class WelcomePage(Handler):
             self.redirect('/signup')
 
 
+#site logout page
 class LogoutPage(Handler):
     def get(self):
         # clear cookie values
@@ -347,6 +355,7 @@ class LogoutPage(Handler):
         self.redirect('/signup')
 
 
+# URL shortner page
 class URLPage(Handler):
     def write_form(self, error='', url_in='', url_out=''):
         self.render('short-url.html',
@@ -372,6 +381,7 @@ class URLPage(Handler):
                         url_out=url_out)
 
 
+# short url redirector handling
 class Redirector(Handler):
     def get(self, url_in=''):
         urldata = pull_urldata_from_db(url_short=url_in)

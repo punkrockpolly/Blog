@@ -3,7 +3,21 @@
 {% block content %}
 
 	{% for entry in entries %}
-	    {{ entry.render() | safe }}
+	    <div class="post">
+  			<div class="post-heading">
+    			<div class="post-title">
+      				{{entry.subject}}
+    			</div>
+
+   		 		<div class="post-date">
+      				{{entry.created.strftime("%b %d, %Y")}}
+    			</div>
+  			</div>
+
+  			<div class="post-content">
+    			{{entry.content}}
+  			</div>
+		</div>
 	    <br><br>
 	{% endfor %}
 
