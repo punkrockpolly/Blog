@@ -210,7 +210,7 @@ class PostPage(Handler):
             self.error(404)
             return
 
-        self.render('postpage.html', display_post=display_post)
+        self.render('blog-post.html', display_post=display_post)
 
 
 # ASCII art page
