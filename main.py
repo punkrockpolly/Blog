@@ -83,7 +83,7 @@ def username_available(username):
 # functions to shorten URLs
 
 def add_http(url_long):
-    if not (url_long.startswith('http://')):
+    if not (url_long.startswith('http://') or url_long.startswith('https://')):
         url_long = 'http://' + url_long
     return url_long
 
