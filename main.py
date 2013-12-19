@@ -152,6 +152,16 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
+    def read_secure_cookie(self, name):
+        cookie_val = self.request.cookies.get(name)
+        username = self.request.cookies.get('user')
+        userid = self.request.cookies.get('userid')
+        hash_val = self.request.cookies.get('hash')
+
+        return cookie_val and is_valid_hash_input(username,
+                                                  userid,
+                                                  hash_val)
+
     def set_cookie(self, cookie_username, cookie_user_id, cookie_hash_id):
         self.response.headers.add_header('Set-Cookie',
                                          'user=' + cookie_username +
@@ -162,6 +172,11 @@ class Handler(webapp2.RequestHandler):
         self.response.headers.add_header('Set-Cookie',
                                          'hash=' + cookie_hash_id +
                                          '; Path=/')
+
+    def initialize(self, *a, **kw):
+        webapp2.RequestHandler.initialize(self, *a, **kw)
+        uid = self.read_secure_cookie('user_id')
+        self.user = uid and user_module.UserDB.get_by_id(int(uid))
 
 
 # render index page
@@ -207,7 +222,8 @@ class PostPage(Handler):
         display_post = blog_module.Blog.get_by_id(post_id)
 
         if not display_post:
-            self.error(404)
+            self.write('This is not a real page, 4-oh-4')
+            self.response.set_status(404)
             return
 
         self.render('blog-post.html', display_post=display_post)
@@ -384,12 +400,15 @@ class URLPage(Handler):
 # short url redirector handling
 class Redirector(Handler):
     def get(self, url_in=''):
+        # try:
         urldata = pull_urldata_from_db(url_short=url_in)
-        display_url = urldata.url_long
 
-        if not display_url:
-            self.error(404)
+        if not urldata:
+            self.write('This is not a real page, 4-oh-4')
+            self.response.set_status(404)
             return
+
+        display_url = urldata.url_long
         self.redirect(str(display_url))
 
 
