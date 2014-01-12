@@ -88,7 +88,7 @@ def get_coords(ip):
     '''
     takes in an ip address
     returns GeoPt(lat, lon) if there are coordinates
-    using'http://api.hostip.info/?='
+    using 'http://api.hostip.info/?='
     '''
     url = IP_URL + ip
     content = None
@@ -103,7 +103,7 @@ def get_coords(ip):
     for node in dom1.getElementsByTagName('gml:coordinates'):
         coords = (node.toxml())
         trim = len('<gml:coordinates>')
-        lon, lat = string.split(coords[trim:-1*(trim+1)], ',')
+        lon, lat = string.split(coords[trim: -1 * (trim + 1)], ',')
         return db.GeoPt(lat, lon)
 
 
@@ -208,21 +208,21 @@ class Handler(webapp2.RequestHandler):
         self.user = uid and user_module.UserDB.get_by_id(int(uid))
 
 
-# render index page
 class Index(Handler):
+    ''' render index page '''
     def get(self):
         self.write('Hello! Nothing to see here')
 
 
-# render newest 10 blog posts
 class BlogPage(Handler):
+    ''' render newest 10 blog posts '''
     def get(self):
         entries = db.GqlQuery('SELECT * FROM Blog ORDER BY created DESC LIMIT 10')
         self.render('front.html', entries=entries)
 
 
-# page to post new blog entries
 class NewPost(Handler):
+    ''' page to post new blog entries '''
     def get(self):
         self.render('newpost.html')
 
@@ -244,8 +244,8 @@ class NewPost(Handler):
                         error=error)
 
 
-# permalink for blog entries
 class PostPage(Handler):
+    ''' permalink for blog entries '''
     def get(self, post_id=''):
         post_id = int(post_id)
         display_post = blog_module.Blog.get_by_id(post_id)
@@ -258,8 +258,8 @@ class PostPage(Handler):
         self.render('blog-post.html', display_post=display_post)
 
 
-# ASCII art page
 class AsciiPage(Handler):
+    ''' ASCII art page '''
     def render_front(self, title='', art='', error=''):
         arts = db.GqlQuery('SELECT * FROM Art ORDER BY created DESC')
         self.render('ascii_front.html',
@@ -270,7 +270,7 @@ class AsciiPage(Handler):
 
     def get(self):
         self.write(repr(get_coords(self.request.remote_addr)))
-        return self.render_front
+        return self.render_front()
 
     def post(self):
         title = self.request.get('title')
@@ -278,11 +278,9 @@ class AsciiPage(Handler):
 
         if title and art:
             a = art_module.Art(title=title, art=art)
-
             ## get map for ip:
             ## lookup user's coordinates from their IP
             # if we have coordinates, add them to the Art
-
             a.put()
             self.redirect('/ascii')
 
@@ -291,8 +289,8 @@ class AsciiPage(Handler):
             self.render_front(title, art, error)
 
 
-# site signup page
 class SignupPage(Handler):
+    ''' site signup page '''
     def get(self):
         self.render('signup-form.html')
 
@@ -338,8 +336,8 @@ class SignupPage(Handler):
             self.redirect('/welcome')
 
 
-# site login page
 class LoginPage(Handler):
+    ''' site login page '''
     def get(self):
         self.render('login-form.html')
 
@@ -383,8 +381,8 @@ class LoginPage(Handler):
             self.redirect('/welcome')
 
 
-# welcome after logging in
 class WelcomePage(Handler):
+    ''' welcome after logging in '''
     def get(self):
         username = self.request.cookies.get('user')
         userid = self.request.cookies.get('userid')
@@ -398,16 +396,16 @@ class WelcomePage(Handler):
             self.redirect('/signup')
 
 
-#site logout page
 class LogoutPage(Handler):
+    ''' site logout page '''
     def get(self):
         # clear cookie values
         self.set_cookie('', '', '')
         self.redirect('/signup')
 
 
-# URL shortner page
 class URLPage(Handler):
+    ''' URL shortner page '''
     def write_form(self, error='', url_in='', url_out=''):
         self.render('short-url.html',
                     error=error,
@@ -432,8 +430,8 @@ class URLPage(Handler):
                         url_out=url_out)
 
 
-# short url redirector handling
 class Redirector(Handler):
+    ''' short url redirector handling '''
     def get(self, url_in=''):
         # try:
         urldata = pull_urldata_from_db(url_short=url_in)
