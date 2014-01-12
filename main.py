@@ -104,6 +104,7 @@ def get_coords(ip):
         coords = (node.toxml())
         trim = len('<gml:coordinates>')
         lon, lat = string.split(coords[trim: -1 * (trim + 1)], ',')
+        print('\nlat: {0}\nlon: {01}'.format(lat, lon))
         return db.GeoPt(lat, lon)
 
 
