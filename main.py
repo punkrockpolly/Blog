@@ -8,13 +8,15 @@ import re
 import random
 import string
 import hashlib
+from xml.dom import minidom
+import urllib2
 import art_module
 import url_module
 import user_module
 import blog_module
 
 
-# setup template path using jinja
+''' setup template path using jinja '''
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
@@ -42,8 +44,8 @@ def pull_userdata_from_db(username):
     return userdata
 
 
-# determines if check_input and hash_val match
 def is_valid_hash_input(name, check_input, hash_val):
+    ''' determines if check_input and hash_val match '''
     salt = hash_val.split('|')[1]
     if make_hash(name, check_input, salt) == hash_val:
         return True
@@ -55,7 +57,7 @@ def escape_html(s):
     return cgi.escape(s, quote=True)
 
 
-# functions to validate input fields
+''' functions to validate input fields '''
 
 def valid_username(username):
     USER_RE = re.compile(r'^[a-zA-Z0-9_-]{3,20}$')
@@ -80,7 +82,32 @@ def username_available(username):
         return False
 
 
-# functions to shorten URLs
+IP_URL = 'http://api.hostip.info/?='
+
+def get_coords(ip):
+    '''
+    takes in an ip address
+    returns GeoPt(lat, lon) if there are coordinates
+    using'http://api.hostip.info/?='
+    '''
+    url = IP_URL + ip
+    content = None
+    try:
+        content = urllib2.urlopen(url).read()
+    except URLError:
+        return
+
+    if content:
+        dom1 = minidom.parseString(content)
+
+    for node in dom1.getElementsByTagName('gml:coordinates'):
+        coords = (node.toxml())
+        trim = len('<gml:coordinates>')
+        lon, lat = string.split(coords[trim:-1*(trim+1)], ',')
+        return db.GeoPt(lat, lon)
+
+
+''' functions to shorten URLs '''
 
 def add_http(url_long):
     if not (url_long.startswith('http://') or url_long.startswith('https://')):
@@ -141,8 +168,10 @@ def make_url_short(url_long):
         make_url_short(url_long)
 
 
-# Handler class with helper methods for rendering pages & managing cookies
 class Handler(webapp2.RequestHandler):
+    ''' Handler class with helper methods
+    for rendering pages & managing cookies '''
+
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
 
@@ -240,7 +269,8 @@ class AsciiPage(Handler):
                     arts=arts)
 
     def get(self):
-        self.render_front()
+        self.write(repr(get_coords(self.request.remote_addr)))
+        return self.render_front
 
     def post(self):
         title = self.request.get('title')
@@ -248,6 +278,11 @@ class AsciiPage(Handler):
 
         if title and art:
             a = art_module.Art(title=title, art=art)
+
+            ## get map for ip:
+            ## lookup user's coordinates from their IP
+            # if we have coordinates, add them to the Art
+
             a.put()
             self.redirect('/ascii')
 
