@@ -99,13 +99,11 @@ def get_coords(ip):
 
     if content:
         dom1 = minidom.parseString(content)
-
-    for node in dom1.getElementsByTagName('gml:coordinates'):
-        coords = (node.toxml())
-        trim = len('<gml:coordinates>')
-        lon, lat = string.split(coords[trim: -1 * (trim + 1)], ',')
-        print('\nlat: {0}\nlon: {01}'.format(lat, lon))
-        return db.GeoPt(lat, lon)
+        coords = dom1.getElementsByTagName('gml:coordinates')
+        if coords and coords[0].childNodes[0].nodeValue:
+            lon, lat = coords[0].childNodes[0].nodeValue.split(',')
+            print('\nlat: {0}\nlon: {01}'.format(lat, lon))
+            return db.GeoPt(lat, lon)
 
 
 ''' functions to shorten URLs '''
@@ -270,7 +268,6 @@ class AsciiPage(Handler):
                     arts=arts)
 
     def get(self):
-        self.write(repr(get_coords(self.request.remote_addr)))
         return self.render_front()
 
     def post(self):
@@ -279,9 +276,11 @@ class AsciiPage(Handler):
 
         if title and art:
             a = art_module.Art(title=title, art=art)
-            ## get map for ip:
+            coords = get_coords(self.request.remote_addr)
             ## lookup user's coordinates from their IP
-            # if we have coordinates, add them to the Art
+            if coords:
+                # if we have coordinates, add them to the Art
+                a.coords = coords
             a.put()
             self.redirect('/ascii')
 
