@@ -57,7 +57,9 @@ def escape_html(s):
     return cgi.escape(s, quote=True)
 
 
-''' functions to validate input fields '''
+'''
+functions to validate input fields
+'''
 
 def valid_username(username):
     USER_RE = re.compile(r'^[a-zA-Z0-9_-]{3,20}$')
@@ -82,14 +84,14 @@ def username_available(username):
         return False
 
 
-IP_URL = 'http://api.hostip.info/?='
-
 def get_coords(ip):
     '''
     takes in an ip address
     returns GeoPt(lat, lon) if there are coordinates
     using 'http://api.hostip.info/?='
     '''
+    IP_URL = 'http://api.hostip.info/?='
+    ip = '4.2.2.2'
     url = IP_URL + ip
     content = None
     try:
@@ -268,6 +270,7 @@ class AsciiPage(Handler):
                     arts=arts)
 
     def get(self):
+        self.write(repr(get_coords(self.request.remote_addr)))
         return self.render_front()
 
     def post(self):
