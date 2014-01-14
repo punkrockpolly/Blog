@@ -108,6 +108,15 @@ def get_coords(ip):
             return db.GeoPt(lat, lon)
 
 
+def gmaps_img(points):
+    '''
+    returns the google maps image for a map with the points passed in
+    '''
+    GMAPS_URL = "http://maps.googleapis.com/maps/api/staticmap?size=380x263&sensor=false&"
+    for point in points:
+        GMAPS_URL = "{0}markers={1},{2}&".format(GMAPS_URL, point[0], point[1])
+    return GMAPS_URL[:-1]
+
 ''' functions to shorten URLs '''
 
 def add_http(url_long):
@@ -269,8 +278,13 @@ class AsciiPage(Handler):
                     error=error,
                     arts=arts)
 
+        # prevent the running of mult queries
+        arts = list(arts)
+        points = filter(None, (a.coords for a in arts))
+        if points:
+            img_url = gmaps_img(points)
+
     def get(self):
-        self.write(repr(get_coords(self.request.remote_addr)))
         return self.render_front()
 
     def post(self):
