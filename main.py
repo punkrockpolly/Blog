@@ -90,7 +90,7 @@ def get_coords(ip):
     returns GeoPt(lat, lon) if there are coordinates
     '''
     IP_URL = 'http://api.hostip.info/?ip='
-    ip = '2.2.2.2'
+    # ip = '2.2.2.2'
     url = IP_URL + ip
     content = None
     try:
