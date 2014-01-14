@@ -11,6 +11,13 @@
 	    body {
 	        font-family: sans-serif; width: 800px; margin: 0 auto; padding: 10px;
 	    }
+
+	    .map {
+	    	position: absolute;
+	    	right: 17px;
+	    	top: 112px;
+	    }
+
 	    error {
 	        color: red;
 	    }
@@ -45,12 +52,12 @@
 
 		<form method="post">
     		<label>
-    			<div>title</div> 
+    			<div>title</div>
     			<input type="text" name="title" value="{{title}}">
     		</label>
 
     		<label>
-        		<div>art</div> 
+        		<div>art</div>
         		<textarea name="art">{{art}}</textarea>
     		</label>
 
@@ -58,6 +65,12 @@
 
     		<input type="submit">
 		</form>
+
+		{% if img_url %}
+			<div class="map">
+			<img src="{{img_url}}">
+			</div>
+		{% endif %}
 
 		<hr>
 

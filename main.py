@@ -88,10 +88,9 @@ def get_coords(ip):
     '''
     takes in an ip address
     returns GeoPt(lat, lon) if there are coordinates
-    using 'http://api.hostip.info/?='
     '''
-    IP_URL = 'http://api.hostip.info/?='
-    ip = '4.2.2.2'
+    IP_URL = 'http://api.hostip.info/?ip='
+    ip = '2.2.2.2'
     url = IP_URL + ip
     content = None
     try:
@@ -112,10 +111,11 @@ def gmaps_img(points):
     '''
     returns the google maps image for a map with the points passed in
     '''
-    GMAPS_URL = "http://maps.googleapis.com/maps/api/staticmap?size=380x263&sensor=false&"
-    for point in points:
-        GMAPS_URL = "{0}markers={1},{2}&".format(GMAPS_URL, point[0], point[1])
-    return GMAPS_URL[:-1]
+    GMAPS_URL = 'http://maps.googleapis.com/maps/api/staticmap?size=380x263&sensor=false&'
+    markers = '&'.join('markers={0},{1}'.format(point.lat, point.lon)
+                       for point in points)
+    return GMAPS_URL + markers
+
 
 ''' functions to shorten URLs '''
 
@@ -272,17 +272,24 @@ class AsciiPage(Handler):
     ''' ASCII art page '''
     def render_front(self, title='', art='', error=''):
         arts = db.GqlQuery('SELECT * FROM Art ORDER BY created DESC')
+
+        # prevent the running of mult queries
+        arts = list(arts)
+
+        # find which arts have coords
+        points = filter(None, (a.coords for a in arts))
+        img_url = None
+
+        # if any arts have coords, make an image url
+        if points:
+            img_url = gmaps_img(points)
+
         self.render('ascii_front.html',
                     title=title,
                     art=art,
                     error=error,
-                    arts=arts)
-
-        # prevent the running of mult queries
-        arts = list(arts)
-        points = filter(None, (a.coords for a in arts))
-        if points:
-            img_url = gmaps_img(points)
+                    arts=arts,
+                    img_url=img_url)
 
     def get(self):
         return self.render_front()
